@@ -23,11 +23,11 @@ mkdir -p docs
 
 # Generate examples
 echo -e "\n${GREEN}Example 1: Generating HTML documentation${NC}"
-docu tests/example.py --format html --output-dir docs --verbose
-echo -e "\n${GREEN}The HTML documentation has been saved to docs/example.html${NC}"
+docu examples/completeDocs.py --format html --output-dir docs --verbose
+echo -e "\n${GREEN}The HTML documentation has been saved to docs/completeDocs.html${NC}"
 
 echo -e "\n${GREEN}Example 2: Generating Markdown documentation (printed to console)${NC}"
-docu tests/example.py --format markdown --verbose
+docu examples/completeDocs.py --format markdown --verbose
 
 echo -e "\n${BLUE}Demonstration complete!${NC}"
 echo -e "${YELLOW}For more examples and usage information, see the README.md file.${NC}"

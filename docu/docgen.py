@@ -7,8 +7,9 @@ documentation from #/ comments, similar to Rust's cargo doc.
 
 import os
 import ast
+import inspect
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Any
 
 try:
     import markdown
@@ -21,6 +22,13 @@ except ImportError:
 
 
 @dataclass
+class ArgumentInfo:
+    name: str
+    type_hint: Optional[str] = None
+    default: Optional[str] = None
+
+
+@dataclass
 class DocItem:
     """Represents a documented item in the Python code."""
     name: str
@@ -28,6 +36,36 @@ class DocItem:
     item_type: str  # 'class', 'function', 'method', 'module', etc.
     lineno: int
     parent: Optional[str] = None
+    args: List[ArgumentInfo] = None
+    return_type: Optional[str] = None
+    fields: Dict[str, str] = None  # For classes, mapping of field name to type
+
+    def __post_init__(self):
+        if self.args is None:
+            self.args = []
+        if self.fields is None:
+            self.fields = {}
+
+
+def get_type_str(node: ast.AST) -> str:
+    """Convert AST type annotation to string representation."""
+    if isinstance(node, ast.Name):
+        return node.id
+    elif isinstance(node, ast.Subscript):
+        value = get_type_str(node.value)
+        slice_val = get_type_str(node.slice)
+        return f"{value}[{slice_val}]"
+    elif isinstance(node, ast.Attribute):
+        return f"{get_type_str(node.value)}.{node.attr}"
+    elif isinstance(node, ast.Constant):
+        return str(node.value)
+    elif isinstance(node, ast.List):
+        elts = [get_type_str(elt) for elt in node.elts]
+        return f"[{', '.join(elts)}]"
+    elif isinstance(node, ast.Tuple):
+        elts = [get_type_str(elt) for elt in node.elts]
+        return f"({', '.join(elts)})"
+    return "Any"
 
 
 def extract_doc_comments(file_path: str) -> List[Tuple[int, str]]:
@@ -88,6 +126,7 @@ def parse_python_file(file_path: str) -> Dict[str, DocItem]:
         else:
             break
     
+    # Only include module if it has documentation
     if module_doc:
         doc_items[module_name] = DocItem(
             name=module_name,
@@ -108,29 +147,55 @@ def parse_python_file(file_path: str) -> Dict[str, DocItem]:
                     # Stop if we hit a non-documented line
                     break
             
-            if item_docs:
-                parent = None
-                for parent_node in ast.walk(tree):
-                    if (
-                        isinstance(parent_node, ast.ClassDef)
-                        and parent_node.lineno < node.lineno
-                        and node in parent_node.body
-                    ):
-                        parent = parent_node.name
-                        break
-                
-                item_type = 'class' if isinstance(node, ast.ClassDef) else 'function'
-                if parent and item_type == 'function':
-                    item_type = 'method'
-                
-                full_name = f"{parent}.{node.name}" if parent else node.name
-                doc_items[full_name] = DocItem(
-                    name=node.name,
-                    doc='\n'.join(item_docs),
-                    item_type=item_type,
-                    lineno=node.lineno,
-                    parent=parent
-                )
+            parent = None
+            for parent_node in ast.walk(tree):
+                if (
+                    isinstance(parent_node, ast.ClassDef)
+                    and parent_node.lineno < node.lineno
+                    and node in parent_node.body
+                ):
+                    parent = parent_node.name
+                    break
+            
+            item_type = 'class' if isinstance(node, ast.ClassDef) else 'function'
+            if parent and item_type == 'function':
+                item_type = 'method'
+            
+            # Extract argument information
+            args = []
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for arg in node.args.args:
+                    if arg.arg == 'self':
+                        continue
+                    type_hint = None
+                    if arg.annotation:
+                        type_hint = get_type_str(arg.annotation)
+                    args.append(ArgumentInfo(name=arg.arg, type_hint=type_hint))
+            
+            # Extract return type
+            return_type = None
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.returns:
+                return_type = get_type_str(node.returns)
+            
+            # Extract class fields
+            fields = {}
+            if isinstance(node, ast.ClassDef):
+                for child in node.body:
+                    if isinstance(child, ast.AnnAssign) and isinstance(child.target, ast.Name):
+                        fields[child.target.id] = get_type_str(child.annotation)
+            
+            full_name = f"{parent}.{node.name}" if parent else node.name
+            
+            doc_items[full_name] = DocItem(
+                name=node.name,
+                doc='\n'.join(item_docs) if item_docs else "",
+                item_type=item_type,
+                lineno=node.lineno,
+                parent=parent,
+                args=args,
+                return_type=return_type,
+                fields=fields
+            )
     
     return doc_items
 
@@ -146,9 +211,9 @@ def generate_markdown_docs(doc_items: Dict[str, DocItem]) -> str:
     """
     md_content = []
     
-    # Module documentation first
+    # Module documentation only if it exists
     module_items = [item for item in doc_items.values() if item.item_type == 'module']
-    if module_items:
+    if module_items and module_items[0].doc:
         module = module_items[0]
         md_content.append(f"# Module {module.name}")
         md_content.append(module.doc)
@@ -157,11 +222,21 @@ def generate_markdown_docs(doc_items: Dict[str, DocItem]) -> str:
     # Classes
     classes = [item for item in doc_items.values() if item.item_type == 'class']
     if classes:
+        if not md_content:  # Add module header if not already added
+            md_content.append(f"# Module {os.path.basename(classes[0].name)}")
+            md_content.append("")
+        
         md_content.append("## Classes")
         for cls in sorted(classes, key=lambda x: x.name):
-            md_content.append(f"### {cls.name}")
-            md_content.append(cls.doc)
-            md_content.append("")
+            md_content.append(f"\n### class {cls.name}")
+            
+            if cls.fields:
+                md_content.append("\n#### Fields")
+                for field_name, field_type in cls.fields.items():
+                    md_content.append(f"- **{field_name}**: {field_type}")
+            
+            if cls.doc:
+                md_content.append("\n" + cls.doc)
             
             # Add methods of this class
             methods = [
@@ -169,10 +244,33 @@ def generate_markdown_docs(doc_items: Dict[str, DocItem]) -> str:
                 if item.item_type == 'method' and item.parent == cls.name
             ]
             if methods:
+                md_content.append("\n#### Methods")
                 for method in sorted(methods, key=lambda x: x.name):
-                    md_content.append(f"#### {method.name}")
-                    md_content.append(method.doc)
-                    md_content.append("")
+                    md_content.append(f"\n##### {method.name}")
+                    
+                    # Show signature
+                    args_str = ", ".join(
+                        f"{arg.name}: {arg.type_hint if arg.type_hint else 'Any'}"
+                        for arg in method.args
+                    )
+                    signature = f"```python\ndef {method.name}({args_str})"
+                    if method.return_type:
+                        signature += f" -> {method.return_type}"
+                    signature += "\n```"
+                    md_content.append(signature)
+                    
+                    if method.doc:
+                        md_content.append(method.doc)
+                    
+                    if method.args:
+                        md_content.append("**Arguments**")
+                        for arg in method.args:
+                            md_content.append(f"- {arg.name}: {arg.type_hint if arg.type_hint else 'Any'}")
+                    
+                    if method.return_type:
+                        md_content.append(f"**Returns**\n- {method.return_type}")
+            
+            md_content.append("")
     
     # Functions (not methods)
     functions = [
@@ -182,8 +280,30 @@ def generate_markdown_docs(doc_items: Dict[str, DocItem]) -> str:
     if functions:
         md_content.append("## Functions")
         for func in sorted(functions, key=lambda x: x.name):
-            md_content.append(f"### {func.name}")
-            md_content.append(func.doc)
+            md_content.append(f"\n### {func.name}")
+            
+            # Show signature
+            args_str = ", ".join(
+                f"{arg.name}: {arg.type_hint if arg.type_hint else 'Any'}"
+                for arg in func.args
+            )
+            signature = f"```python\ndef {func.name}({args_str})"
+            if func.return_type:
+                signature += f" -> {func.return_type}"
+            signature += "\n```"
+            md_content.append(signature)
+            
+            if func.doc:
+                md_content.append(func.doc)
+            
+            if func.args:
+                md_content.append("**Arguments**")
+                for arg in func.args:
+                    md_content.append(f"- {arg.name}: {arg.type_hint if arg.type_hint else 'Any'}")
+            
+            if func.return_type:
+                md_content.append(f"**Returns**\n- {func.return_type}")
+            
             md_content.append("")
     
     return '\n'.join(md_content)
