@@ -1,12 +1,14 @@
 # Docu
 
-A Python command-line tool to generate documentation from Python files using `#/` comments, inspired by Rust's `cargo doc` command.
+Documentation generator for Python code that extracts documentation from special `#/` comment lines.
 
 ## Features
 
 - Extracts documentation from special `#/` comment lines in Python code
 - Supports documentation for modules, classes, and functions
 - Generates both Markdown and HTML documentation formats
+- Supports multiple documentation styles (Google, NumPy, Sphinx)
+- Customizable HTML templates with schema validation
 - Clean and attractive output with proper formatting
 
 ## Installation
@@ -46,6 +48,8 @@ Options:
 --format, -f [markdown|html]  Output format for the documentation (default: html)
 --output-dir, -o PATH         Directory to save the generated documentation
 --verbose, -v                 Enable verbose output
+--template, -t NAME           HTML template name to use (default: default)
+--doc-style, -s STYLE        Documentation style to parse (google|numpy|sphinx)
 ```
 
 Examples:
@@ -57,61 +61,102 @@ docu my_code.py --output-dir docs
 # Generate Markdown documentation
 docu my_code.py --format markdown
 
+# Use NumPy documentation style with a custom template
+docu my_code.py --doc-style numpy --template custom
+
 # Process a file with verbose output
 docu my_code.py --verbose
 ```
 
 ## Comment Format
 
-The tool processes special comments that start with `#/`. Here's how to use them:
+The tool processes special comments that start with `#/`. Here's how to use them with different documentation styles:
+
+### Google Style (default)
 
 ```python
-#/ This is a module-level documentation comment.
-#/ It will be included in the module documentation.
-
-#/ This is a class documentation comment.
-class MyClass:
-    #/ This documents the __init__ method.
-    def __init__(self, value):
-        self.value = value
-        
-    #/ This documents another method.
-    #/ You can use multiple lines.
-    #/ 
-    #/ Parameters:
-    #/ - param1: Description of parameter 1
-    def my_method(self, param1):
-        pass
-
-#/ This documents a function.
-def my_function():
-    pass
+#/ Convert input text to HTML.
+#/
+#/ Args:
+#/     text: The input text to convert
+#/     options: Conversion options
+#/
+#/ Returns:
+#/     Converted HTML string
+#/
+#/ Raises:
+#/     ValueError: If text is empty
+def convert_to_html(text: str, options: dict = None) -> str:
+    # ...
 ```
 
-## Development
+### NumPy Style
 
-### Setting up the development environment
-
-```bash
-./scripts/setup.sh
+```python
+#/ Convert input text to HTML.
+#/
+#/ Parameters
+#/ ----------
+#/ text : str
+#/     The input text to convert
+#/ options : dict
+#/     Conversion options
+#/
+#/ Returns
+#/ -------
+#/ str
+#/     Converted HTML string
+#/
+#/ Raises
+#/ ------
+#/ ValueError
+#/     If text is empty
+def convert_to_html(text: str, options: dict = None) -> str:
+    # ...
 ```
 
-### Running tests
+### Sphinx Style
 
-```bash
-./scripts/test.sh
+```python
+#/ Convert input text to HTML.
+#/
+#/ :param text: The input text to convert
+#/ :param options: Conversion options
+#/ :returns: Converted HTML string
+#/ :raises ValueError: If text is empty
+def convert_to_html(text: str, options: dict = None) -> str:
+    # ...
 ```
 
-### Building the package
+## Custom Templates
 
-```bash
-./scripts/build.sh
+You can create custom HTML templates in the `templates` directory. Templates must follow the schema defined in `templates/schema.json`:
+
+```json
+{
+    "name": "custom",
+    "template": "custom.html",
+    "styles": "/* Your CSS styles */",
+    "docstyle": "google"  // Optional, defaults to "google"
+}
 ```
+
+Template files use Jinja2 syntax and have access to the following context variables:
+
+- `items`: Dictionary of all documented items
+- `parsed_docs`: Dictionary of parsed documentation for each item
+- `module_items`: List of module-level documentation items
+- `classes`: List of documented classes
+- `functions`: List of documented functions
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the BSD 3-Clause License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.

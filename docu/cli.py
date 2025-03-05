@@ -1,69 +1,105 @@
-"""
-Command-line interface for the docu documentation generator.
-"""
-
+"""Command line interface for docu."""
 import sys
-import click
-from rich.console import Console
-from rich.panel import Panel
-
+import argparse
+from typing import List, Optional
 from .docgen import process_file
+import os
 
+def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description='Generate documentation from Python files'
+    )
 
-console = Console()
+    parser.add_argument(
+        'file_path',
+        help='Path to the Python file to document'
+    )
 
+    parser.add_argument(
+        '--format', '-f',
+        choices=['markdown', 'html'],
+        default='html',
+        help='Output format for the documentation'
+    )
 
-@click.command()
-@click.argument('file_path', type=click.Path(exists=True))
-@click.option('--format', '-f', type=click.Choice(['markdown', 'html']), default='html',
-              help='Output format for the documentation')
-@click.option('--output-dir', '-o', type=click.Path(),
-              help='Directory to save the generated documentation')
-@click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
-def main(file_path, format, output_dir, verbose):
-    """Generate documentation from Python files using #/ comments.
-    
-    FILE_PATH is the path to the Python file to process.
+    parser.add_argument(
+        '--output-dir', '-o',
+        help='Directory to save the generated documentation'
+    )
+
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Enable verbose output'
+    )
+
+    parser.add_argument(
+        '--template', '-t',
+        default='default',
+        help='HTML template name to use (only applies to HTML output)'
+    )
+
+    parser.add_argument(
+        '--doc-style', '-s',
+        choices=['google', 'numpy', 'sphinx'],
+        default='google',
+        help='Documentation style to parse'
+    )
+
+    return parser.parse_args(args)
+
+def main(args: Optional[List[str]] = None) -> int:
+    """Main entry point for the CLI.
+
+    Args:
+        args: Command line arguments (uses sys.argv if None)
+
+    Returns:
+        Exit code (0 for success, non-zero for error)
     """
-    try:
-        if not file_path.endswith('.py'):
-            console.print(Panel("[bold red]Error: File must be a Python (.py) file[/bold red]"))
-            sys.exit(1)
-            
-        if verbose:
-            console.print(f"[bold blue]Processing file:[/bold blue] {file_path}")
-            console.print(f"[bold blue]Output format:[/bold blue] {format}")
-            if output_dir:
-                console.print(
-                    f"[bold blue]Output directory:[/bold blue] {output_dir}"
-                )
-        
-        result = process_file(file_path, output_format=format, output_dir=output_dir)
-        
-        if output_dir:
-            console.print(f"[bold green]Documentation saved to:[/bold green] {result}")
-        else:
-            if format == 'markdown':
-                console.print(
-                    Panel.fit(result, title="Generated Documentation (Markdown)")
-                )
-            else:
-                console.print("[bold green]Generated HTML Documentation:[/bold green]")
-                console.print(
-                    Panel(
-                        result[:500] + "..." if len(result) > 500 else result
-                    )
-                )
-                console.print(
-                    "[italic]HTML output truncated. Use --output-dir to save the full HTML.[/italic]"
-                )
-    
-    except Exception as e:
-        console.print(f"[bold red]Error:[/bold red] {str(e)}")
-        if verbose:
-            console.print_exception()
-        sys.exit(1)
+    parsed_args = parse_args(args)
 
+    # Check if file exists
+    if not os.path.exists(parsed_args.file_path):
+        print(f"Error: File not found: {parsed_args.file_path}", file=sys.stderr)
+        return 1
+
+    # Check if it's a Python file
+    if not parsed_args.file_path.endswith('.py'):
+        print(f"Error: {parsed_args.file_path} must be a Python (.py) file", file=sys.stderr)
+        return 1
+
+    if parsed_args.verbose:
+        print(f"Processing file: {parsed_args.file_path}")
+        print(f"Output format: {parsed_args.format}")
+        if parsed_args.output_dir:
+            print(f"Output directory: {parsed_args.output_dir}")
+
+    try:
+        output = process_file(
+            parsed_args.file_path,
+            output_format=parsed_args.format,
+            output_dir=parsed_args.output_dir,
+            template_name=parsed_args.template,
+            doc_style=parsed_args.doc_style
+        )
+
+        if parsed_args.output_dir:
+            print(f"Documentation saved to: {output}")
+        else:
+            print(output)
+
+        return 0
+
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if parsed_args.verbose:
+            raise
+        return 1
+
+# Compatibility with Click-style testing
+main.name = "main"  # Add name attribute for Click test compatibility
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

@@ -1,0 +1,7 @@
+{
+    "name": "minimal",
+    "description": "Lightweight template with basic styling",
+    "docstyle": "google",
+    "styles": "/* Minimal styles provided in template */",
+    "template": "minimal.html"
+}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title|default('Documentation') }}</title>
+    <style>
+        {{ styles|default('
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 960px; margin: 0 auto; padding: 2rem; }
+            pre { background: #f5f5f5; padding: 1em; border-radius: 4px; overflow: auto; }
+            code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+            .doc { margin: 1em 0; }
+            .module, .class, .function { margin: 2em 0; padding: 1em; border: 1px solid #eee; border-radius: 4px; }
+        ') }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            {% if module_items %}
+            {% for module in module_items %}
+            <section class="module">
+                <h1>Module {{ module.name }}</h1>
+                <div class="doc">{{ module.doc }}</div>
+            </section>
+            {% endfor %}
+            {% endif %}
+
+            {% if classes %}
+            <section class="classes">
+                <h2>Classes</h2>
+                {% for class in classes %}
+                <div class="class">
+                    <h3>{{ class.name }}</h3>
+                    {% if class.doc %}
+                    <div class="doc">{{ class.doc }}</div>
+                    {% endif %}
+                    
+                    {% if class.methods %}
+                    <div class="methods">
+                        {% for method in class.methods %}
+                        <div class="method">
+                            <h4>{{ method.name }}</h4>
+                            <pre><code>{{ method.name }}({% for arg in method.args %}{{ arg.name }}{% if arg.type_hint %}: {{ arg.type_hint }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}){% if method.return_type %} -> {{ method.return_type }}{% endif %}</code></pre>
+                            {% if method.doc %}
+                            <div class="doc">{{ method.doc }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+
+            {% if functions %}
+            <section class="functions">
+                <h2>Functions</h2>
+                {% for function in functions %}
+                <div class="function">
+                    <h3>{{ function.name }}</h3>
+                    <pre><code>{{ function.name }}({% for arg in function.args %}{{ arg.name }}{% if arg.type_hint %}: {{ arg.type_hint }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}){% if function.return_type %} -> {{ function.return_type }}{% endif %}</code></pre>
+                    {% if function.doc %}
+                    <div class="doc">{{ function.doc }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

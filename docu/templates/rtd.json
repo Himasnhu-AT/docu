@@ -1,0 +1,7 @@
+{
+    "name": "rtd",
+    "description": "ReadTheDocs-inspired template with sidebar navigation",
+    "docstyle": "sphinx",
+    "styles": "/* RTD styles provided in template */",
+    "template": "rtd.html"
+}

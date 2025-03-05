@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title|default('Documentation') }}</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #1a1a1a;
+            --code-bg: #f5f5f5;
+            --border-color: #e1e4e8;
+            --link-color: #0366d6;
+            --heading-color: #24292e;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #0d1117;
+                --text-color: #c9d1d9;
+                --code-bg: #161b22;
+                --border-color: #30363d;
+                --link-color: #58a6ff;
+                --heading-color: #8b949e;
+            }
+        }
+        
+        body {
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        h1, h2, h3, h4 {
+            color: var(--heading-color);
+            margin-top: 2em;
+            margin-bottom: 1em;
+            font-weight: 600;
+        }
+        
+        pre {
+            background: var(--code-bg);
+            padding: 1em;
+            border-radius: 6px;
+            overflow: auto;
+            border: 1px solid var(--border-color);
+        }
+        
+        code {
+            font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.9em;
+            padding: 0.2em 0.4em;
+            background: var(--code-bg);
+            border-radius: 3px;
+        }
+        
+        .class, .function, .method {
+            margin: 2em 0;
+            padding: 1em;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+        
+        .doc {
+            margin: 1em 0;
+            padding-left: 1em;
+            border-left: 4px solid var(--border-color);
+        }
+        
+        .theme-switch {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5em 1em;
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentMode = html.style.getPropertyValue('color-scheme') || 'light';
+            const newMode = currentMode === 'light' ? 'dark' : 'light';
+            html.style.setProperty('color-scheme', newMode);
+        }
+    </script>
+</head>
+<body>
+    <button class="theme-switch" onclick="toggleTheme()">Toggle Theme</button>
+    
+    {% if module_items %}
+    {% for module in module_items %}
+    <h1>{{ module.name }}</h1>
+    <div class="doc">{{ module.doc }}</div>
+    {% endfor %}
+    {% endif %}
+
+    {% if classes %}
+    <h2>Classes</h2>
+    {% for class in classes %}
+    <div class="class">
+        <h3>{{ class.name }}</h3>
+        <div class="doc">{{ class.doc }}</div>
+        {% if class.fields %}
+        <h4>Fields</h4>
+        <ul>
+        {% for name, type in class.fields.items() %}
+            <li><code>{{ name }}: {{ type }}</code></li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+        
+        {% if class.methods %}
+        <h4>Methods</h4>
+        {% for method in class.methods %}
+        <div class="method">
+            <h5>{{ method.name }}</h5>
+            <pre><code>{{ method.name }}({% for arg in method.args %}{{ arg.name }}{% if arg.type_hint %}: {{ arg.type_hint }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}){% if method.return_type %} -> {{ method.return_type }}{% endif %}</code></pre>
+            <div class="doc">{{ method.doc }}</div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if functions %}
+    <h2>Functions</h2>
+    {% for function in functions %}
+    <div class="function">
+        <h3>{{ function.name }}</h3>
+        <pre><code>{{ function.name }}({% for arg in function.args %}{{ arg.name }}{% if arg.type_hint %}: {{ arg.type_hint }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}){% if function.return_type %} -> {{ function.return_type }}{% endif %}</code></pre>
+        <div class="doc">{{ function.doc }}</div>
+    </div>
+    {% endfor %}
+    {% endif %}
+</body>
+</html>

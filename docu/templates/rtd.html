@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title|default('Documentation') }}</title>
+    <style>
+        :root {
+            --sidebar-width: 300px;
+            --content-width: 800px;
+            --primary-color: #2980b9;
+            --bg-color: #fcfcfc;
+            --text-color: #404040;
+            --sidebar-bg: #343131;
+            --sidebar-text: #d9d9d9;
+        }
+        
+        body {
+            font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+            margin: 0;
+            display: flex;
+        }
+        
+        nav {
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            padding: 1rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        nav li {
+            margin: 0.5em 0;
+        }
+        
+        nav a {
+            color: var(--sidebar-text);
+            text-decoration: none;
+        }
+        
+        main {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            max-width: var(--content-width);
+            width: 100%;
+        }
+        
+        h1, h2, h3, h4 {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+        
+        .section {
+            margin: 2em 0;
+            padding: 1em;
+            background: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            border-radius: 4px;
+        }
+        
+        pre {
+            background: #f3f6f6;
+            padding: 1em;
+            border-radius: 4px;
+            overflow: auto;
+            border: 1px solid #e1e4e5;
+        }
+        
+        code {
+            font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.9em;
+            background: #f3f6f6;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+        
+        .doc {
+            margin: 1em 0;
+            padding-left: 1em;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .admonition {
+            padding: 1em;
+            margin: 1em 0;
+            border-radius: 4px;
+            border-left: 4px solid var(--primary-color);
+            background: #e7f2fa;
+        }
+        
+        @media screen and (max-width: 768px) {
+            nav {
+                display: none;
+            }
+            main {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <h2>Contents</h2>
+        <ul>
+            {% if module_items %}
+            {% for module in module_items %}
+            <li><a href="#module-{{ module.name }}">{{ module.name }}</a></li>
+            {% endfor %}
+            {% endif %}
+            
+            {% if classes %}
+            <li>
+                <h3>Classes</h3>
+                <ul>
+                {% for class in classes %}
+                    <li>
+                        <a href="#class-{{ class.name }}">{{ class.name }}</a>
+                        {% if class.methods %}
+                        <ul>
+                            {% for method in class.methods %}
+                            <li><a href="#method-{{ class.name }}-{{ method.name }}">{{ method.name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                </ul>
+            </li>
+            {% endif %}
+            
+            {% if functions %}
+            <li>
+                <h3>Functions</h3>
+                <ul>
+                {% for function in functions %}
+                    <li><a href="#function-{{ function.name }}">{{ function.name }}</a></li>
+                {% endfor %}
+                </ul>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <main>
+        {% if module_items %}
+        {% for module in module_items %}
+        <section id="module-{{ module.name }}" class="section">
+            <h1>{{ module.name }}</h1>
+            <div class="doc">{{ module.doc }}</div>
+        </section>
+        {% endfor %}
+        {% endif %}
+
+        {% if classes %}
+        <h2>Classes</h2>
+        {% for class in classes %}
+        <section id="class-{{ class.name }}" class="section">
+            <h3>{{ class.name }}</h3>
+            <div class="doc">{{ class.doc }}</div>
+            
+            {% if class.fields %}
+            <h4>Fields</h4>
+            <ul>
+            {% for name, type in class.fields.items() %}
+                <li><code>{{ name }}: {{ type }}</code></li>
+            {% endfor %}
+            </ul>
+            {% endif %}
+            
+            {% if class.methods %}
+            <h4>Methods</h4>
+            {% for method in class.methods %}
+            <div id="method-{{ class.name }}-{{ method.name }}" class="method section">
+                <h5>{{ method.name }}</h5>
+                <pre><code>{{ method.name }}({% for arg in method.args %}{{ arg.name }}{% if arg.type_hint %}: {{ arg.type_hint }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}){% if method.return_type %} -> {{ method.return_type }}{% endif %}</code></pre>
+                <div class="doc">{{ method.doc }}</div>
+                
+                {% if method.args %}
+                <h6>Parameters</h6>
+                <ul>
+                    {% for arg in method.args %}
+                    <li><code>{{ arg.name }}</code>{% if arg.type_hint %}: {{ arg.type_hint }}{% endif %}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                
+                {% if method.return_type %}
+                <h6>Returns</h6>
+                <p><code>{{ method.return_type }}</code></p>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% endif %}
+        </section>
+        {% endfor %}
+        {% endif %}
+
+        {% if functions %}
+        <h2>Functions</h2>
+        {% for function in functions %}
+        <section id="function-{{ function.name }}" class="section">
+            <h3>{{ function.name }}</h3>
+            <pre><code>{{ function.name }}({% for arg in function.args %}{{ arg.name }}{% if arg.type_hint %}: {{ arg.type_hint }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}){% if function.return_type %} -> {{ function.return_type }}{% endif %}</code></pre>
+            <div class="doc">{{ function.doc }}</div>
+            
+            {% if function.args %}
+            <h6>Parameters</h6>
+            <ul>
+                {% for arg in function.args %}
+                <li><code>{{ arg.name }}</code>{% if arg.type_hint %}: {{ arg.type_hint }}{% endif %}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            
+            {% if function.return_type %}
+            <h6>Returns</h6>
+            <p><code>{{ function.return_type }}</code></p>
+            {% endif %}
+        </section>
+        {% endfor %}
+        {% endif %}
+    </main>
+</body>
+</html>
