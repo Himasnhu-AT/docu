@@ -3,6 +3,7 @@ import pytest
 from pathlib import Path
 from docu.template_manager import TemplateManager
 from docu.doc_parsers import get_parser, GoogleStyleParser, NumpyStyleParser, SphinxStyleParser
+from docu.models import DocItem, ArgumentInfo
 
 def test_template_manager_initialization():
     """Test template manager initialization."""
@@ -153,11 +154,32 @@ def test_template_rendering():
     tm = TemplateManager()
     templates = tm.list_templates()
     
+    # Create a method with args and return type
+    method = DocItem(
+        name="test_method",
+        doc="Test method doc",
+        item_type="method",
+        lineno=5,
+        parent="TestClass",
+        args=[ArgumentInfo(name="arg1", type_hint="str")],
+        return_type="bool"
+    )
+    
     test_data = {
         'title': 'Test Documentation',
         'module_items': [{'name': 'test_module', 'doc': 'Test module doc'}],
-        'classes': [{'name': 'TestClass', 'doc': 'Test class doc', 'methods': []}],
-        'functions': [{'name': 'test_func', 'doc': 'Test function doc', 'args': []}]
+        'classes': [{
+            'name': 'TestClass',
+            'doc': 'Test class doc',
+            'methods': [method],
+            'fields': {'field1': 'str', 'field2': 'int'}
+        }],
+        'functions': [{
+            'name': 'test_func',
+            'doc': 'Test function doc',
+            'args': [ArgumentInfo(name="param1", type_hint="int")],
+            'return_type': 'str'
+        }]
     }
     
     for template in templates:
@@ -168,3 +190,50 @@ def test_template_rendering():
         assert 'test_module' in rendered
         assert 'TestClass' in rendered
         assert 'test_func' in rendered
+        assert 'field1: str' in rendered
+        assert 'field2: int' in rendered
+        assert 'test_method(arg1: str) -> bool' in rendered
+        assert 'param1: int' in rendered
+
+def test_template_error_handling():
+    """Test template error handling."""
+    tm = TemplateManager()
+    
+    with pytest.raises(ValueError):
+        # Test with missing required template variable
+        tmpl = tm.get_template('default')
+        tmpl.render()  # Should raise ValueError
+
+def test_advanced_google_style_parser():
+    """Test Google style parser with complex docstrings."""
+    parser = get_parser('google')
+    docstring = '''This is a complex function.
+
+    It has a multi-line description
+    that includes formatting.
+
+    Args:
+        param1 (int): First parameter
+        param2 (str, optional): Second parameter
+            with a multi-line
+            description
+        *args: Variable arguments
+        **kwargs: Keyword arguments
+
+    Returns:
+        Dict[str, Any]: A dictionary containing:
+            - key1: First value
+            - key2: Second value
+
+    Raises:
+        ValueError: When param1 is negative
+        TypeError: When param2 is not a string
+    '''
+    
+    result = parser.parse(docstring)
+    assert 'This is a complex function.' in result['description']
+    assert 'multi-line description' in result['description']
+    assert len(result['args']) >= 2
+    assert 'param1 (int): First parameter' in result['args']
+    assert 'Dict[str, Any]: A dictionary containing:' in result['returns']
+    assert len(result['raises']) >= 2
