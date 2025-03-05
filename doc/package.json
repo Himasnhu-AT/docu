@@ -1,0 +1,23 @@
+{
+  "name": "docu",
+  "version": "1.0.0",
+  "description": "Documentation generator for Python code that extracts documentation from special `#/` comment lines.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "vitepress build",
+    "dev": "vitepress dev",
+    "start": "vitepress dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Himanshu <email: hyattherate2005@gmail.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
+}

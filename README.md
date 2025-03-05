@@ -34,6 +34,31 @@ source venv/bin/activate
 pip install -e .
 ```
 
+## Documentation
+
+The project documentation is built with VitePress. To view the docs:
+
+```bash
+# Navigate to the doc directory
+cd doc
+
+# Install dependencies (first time only)
+npm install
+
+# Start the development server
+npm run dev
+```
+
+Then open [http://localhost:5173](http://localhost:5173) in your browser.
+
+To build the documentation for production:
+
+```bash
+npm run build
+```
+
+The built documentation will be available in the `doc/.vitepress/dist` directory.
+
 ## Usage
 
 Basic usage:
@@ -134,10 +159,10 @@ You can create custom HTML templates in the `templates` directory. Templates mus
 
 ```json
 {
-    "name": "custom",
-    "template": "custom.html",
-    "styles": "/* Your CSS styles */",
-    "docstyle": "google"  // Optional, defaults to "google"
+  "name": "custom",
+  "template": "custom.html",
+  "styles": "/* Your CSS styles */",
+  "docstyle": "google" // Optional, defaults to "google"
 }
 ```
 
@@ -159,4 +184,4 @@ Template files use Jinja2 syntax and have access to the following context variab
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the BSD-CLAUSE3 License - see the [LICENSE](./LICENSE) file for details.

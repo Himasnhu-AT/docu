@@ -55,3 +55,7 @@ venv.bak/
 # Project specific
 docs/
 !docs/.gitkeep
+
+doc/node_modules
+doc/.vitepress/cache
+doc/.vitepress/dist
