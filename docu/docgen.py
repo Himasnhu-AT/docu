@@ -137,6 +137,9 @@ def parse_python_file(file_path: str) -> Dict[str, DocItem]:
             lineno=1,
         )
     
+    # Track class methods to attach them later
+    class_methods = {}
+    
     # Extract class and function documentation
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
@@ -186,9 +189,7 @@ def parse_python_file(file_path: str) -> Dict[str, DocItem]:
                     if isinstance(child, ast.AnnAssign) and isinstance(child.target, ast.Name):
                         fields[child.target.id] = get_type_str(child.annotation)
             
-            full_name = f"{parent}.{node.name}" if parent else node.name
-            
-            doc_items[full_name] = DocItem(
+            doc_item = DocItem(
                 name=node.name,
                 doc='\n'.join(item_docs) if item_docs else "",
                 item_type=item_type,
@@ -198,6 +199,21 @@ def parse_python_file(file_path: str) -> Dict[str, DocItem]:
                 return_type=return_type,
                 fields=fields
             )
+            
+            # Store methods separately to attach to classes later
+            if item_type == 'method':
+                if parent not in class_methods:
+                    class_methods[parent] = []
+                class_methods[parent].append(doc_item)
+                continue  # Don't add methods to doc_items directly
+            
+            full_name = f"{parent}.{node.name}" if parent else node.name
+            doc_items[full_name] = doc_item
+    
+    # Attach methods to their respective classes
+    for class_name, methods in class_methods.items():
+        if class_name in doc_items:
+            doc_items[class_name].methods = sorted(methods, key=lambda x: x.lineno)
     
     return doc_items
 
@@ -335,12 +351,21 @@ def generate_html_docs(doc_items: Dict[str, DocItem], template_name: str = 'defa
     # Get template
     template = template_manager.get_template(template_name)
     
+    # First, we need to process any class methods
+    classes = [item for item in doc_items.values() if item.item_type == 'class']
+    for class_item in classes:
+        if hasattr(class_item, 'methods'):
+            for method in class_item.methods:
+                method_full_name = f"{class_item.name}.{method.name}"
+                if method.doc:
+                    parsed_docs[method_full_name] = doc_parser.parse(method.doc)
+    
     # Prepare template data
     template_data = {
         'items': doc_items,
         'parsed_docs': parsed_docs,
         'module_items': [item for item in doc_items.values() if item.item_type == 'module'],
-        'classes': [item for item in doc_items.values() if item.item_type == 'class'],
+        'classes': classes,
         'functions': [item for item in doc_items.values() if item.item_type == 'function' and not item.parent],
     }
     
