@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docu"
+version = "0.1.0"
+description = "Generate documentation from Python files using #/ comments"
+readme = "README.md"
+authors = [{name = "Himanshu", email = "hyattherate2005@gmail.com"}]
+license = {text = "MIT"}
+requires-python = ">=3.8"
+keywords = ["documentation", "generator", "python", "docstring", "comments"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Documentation",
+]
+
+dependencies = [
+    "click>=8.0.0",
+    "rich>=10.0.0",
+    "markdown>=3.3.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Himasnhu-AT/docu"
+"Bug Tracker" = "https://github.com/Himasnhu-AT/docu/issues"
+"Documentation" = "https://github.com/Himasnhu-AT/docu#readme"
+"Source Code" = "https://github.com/Himasnhu-AT/docu"
+
+[project.scripts]
+docu = "docu.cli:main"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--cov=docu --cov-report=term-missing"
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
