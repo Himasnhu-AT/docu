@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Generate documentation from Python files using #/ comments"
 readme = "README.md"
 authors = [{name = "Himanshu", email = "hyattherate2005@gmail.com"}]
-license = {text = "MIT"}
+license = {text = "BSD-3-Clause"}
 requires-python = ">=3.8"
 keywords = ["documentation", "generator", "python", "docstring", "comments"]
 classifiers = [
@@ -18,7 +18,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Environment :: Console",
     "Intended Audience :: Developers",
