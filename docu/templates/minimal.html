@@ -8,13 +8,15 @@
         pre { background: #f5f5f5; padding: 1em; overflow: auto; }
         code { font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace; }
         .method, .function { margin: 1em 0; }
+        .doc { margin: 1em 0; padding-left: 1em; border-left: 3px solid #e8e8e8; }
+        .method-list { margin-left: 1.5em; }
     </style>
 </head>
 <body>
     {% if module_items %}
     {% for module in module_items %}
     <h1>{{ module.name }}</h1>
-    <div>{{ module.doc }}</div>
+    <div class="doc">{{ module.doc }}</div>
     {% endfor %}
     {% endif %}
 
@@ -23,7 +25,8 @@
     {% for class in classes %}
     <div class="class">
         <h3>{{ class.name }}</h3>
-        <div>{{ class.doc }}</div>
+        <div class="doc">{{ class.doc }}</div>
+        
         {% if class.fields %}
         <h4>Fields</h4>
         <ul>
@@ -31,6 +34,19 @@
             <li><code>{{ name }}: {{ type }}</code></li>
         {% endfor %}
         </ul>
+        {% endif %}
+
+        {% if class.methods %}
+        <h4>Methods</h4>
+        <div class="method-list">
+        {% for method in class.methods %}
+            <div class="method">
+                <h5>{{ method.name }}</h5>
+                <pre><code>{{ method.name }}({% for arg in method.args %}{{ arg.name }}{% if arg.type_hint %}: {{ arg.type_hint }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}){% if method.return_type %} -> {{ method.return_type }}{% endif %}</code></pre>
+                <div class="doc">{{ method.doc }}</div>
+            </div>
+        {% endfor %}
+        </div>
         {% endif %}
     </div>
     {% endfor %}
@@ -42,7 +58,7 @@
     <div class="function">
         <h3>{{ function.name }}</h3>
         <pre><code>{{ function.name }}({% for arg in function.args %}{{ arg.name }}{% if arg.type_hint %}: {{ arg.type_hint }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}){% if function.return_type %} -> {{ function.return_type }}{% endif %}</code></pre>
-        <div>{{ function.doc }}</div>
+        <div class="doc">{{ function.doc }}</div>
     </div>
     {% endfor %}
     {% endif %}
