@@ -1,0 +1,7 @@
+{
+    "name": "modern",
+    "description": "Modern template with dark/light mode support",
+    "docstyle": "google",
+    "styles": "/* Modern styles provided in template */",
+    "template": "modern.html"
+}

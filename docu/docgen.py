@@ -10,6 +10,8 @@ import ast
 import inspect
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union, Any
+from .template_manager import TemplateManager
+from .doc_parsers import get_parser, DocStyleParser
 
 try:
     import markdown
@@ -309,76 +311,49 @@ def generate_markdown_docs(doc_items: Dict[str, DocItem]) -> str:
     return '\n'.join(md_content)
 
 
-def generate_html_docs(doc_items: Dict[str, DocItem]) -> str:
+def generate_html_docs(doc_items: Dict[str, DocItem], template_name: str = 'default', doc_style: str = 'google') -> str:
     """Generate HTML documentation from parsed docitems.
     
     Args:
         doc_items: Dictionary of DocItem objects
+        template_name: Name of the template to use
+        doc_style: Documentation style to parse ('google', 'numpy', or 'sphinx')
         
     Returns:
         HTML formatted documentation
     """
-    md_content = generate_markdown_docs(doc_items)
-    html_content = markdown.markdown(md_content, extensions=['tables', 'fenced_code'])
+    # Get template manager and parser
+    template_manager = TemplateManager()
+    doc_parser = get_parser(doc_style)
     
-    html_template = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Python Documentation</title>
-        <style>
-            body {{
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", 
-                Roboto, Helvetica, Arial, sans-serif;
-                line-height: 1.6;
-                padding: 20px;
-                max-width: 800px;
-                margin: 0 auto;
-            }}
-            h1 {{
-                border-bottom: 1px solid #eaecef;
-                padding-bottom: 0.3em;
-            }}
-            h2 {{
-                border-bottom: 1px solid #eaecef;
-                padding-bottom: 0.3em;
-                margin-top: 24px;
-                margin-bottom: 16px;
-            }}
-            code {{
-                font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, 
-                monospace;
-                background-color: rgba(27,31,35,0.05);
-                padding: 0.2em 0.4em;
-                border-radius: 3px;
-            }}
-            pre {{
-                background-color: #f6f8fa;
-                border-radius: 3px;
-                padding: 16px;
-                overflow: auto;
-            }}
-            pre code {{
-                background-color: transparent;
-                padding: 0;
-            }}
-        </style>
-    </head>
-    <body>
-        {html_content}
-    </body>
-    </html>
-    """
+    # Parse documentation with selected style
+    parsed_docs = {}
+    for name, item in doc_items.items():
+        if item.doc:
+            parsed_docs[name] = doc_parser.parse(item.doc)
     
-    return html_template
+    # Get template
+    template = template_manager.get_template(template_name)
+    
+    # Prepare template data
+    template_data = {
+        'items': doc_items,
+        'parsed_docs': parsed_docs,
+        'module_items': [item for item in doc_items.values() if item.item_type == 'module'],
+        'classes': [item for item in doc_items.values() if item.item_type == 'class'],
+        'functions': [item for item in doc_items.values() if item.item_type == 'function' and not item.parent],
+    }
+    
+    # Render template
+    return template.render(**template_data)
 
 
 def process_file(
     file_path: str,
     output_format: str = 'markdown',
-    output_dir: Optional[str] = None
+    output_dir: Optional[str] = None,
+    template_name: str = 'default',
+    doc_style: str = 'google'
 ) -> str:
     """Process a Python file and generate documentation.
     
@@ -386,6 +361,8 @@ def process_file(
         file_path: Path to the Python file
         output_format: Format of the output ('markdown' or 'html')
         output_dir: Directory to save the output file (if None, returns as string)
+        template_name: Name of the template to use for HTML output
+        doc_style: Documentation style to parse ('google', 'numpy', or 'sphinx')
         
     Returns:
         Generated documentation content
@@ -398,14 +375,18 @@ def process_file(
     if output_format == 'markdown':
         content = generate_markdown_docs(doc_items)
         extension = 'md'
+        # For markdown, use original naming
+        output_filename = os.path.basename(file_path).replace('.py', f'.{extension}')
     else:  # html
-        content = generate_html_docs(doc_items)
+        content = generate_html_docs(doc_items, template_name, doc_style)
         extension = 'html'
+        # For HTML, include template name in the filename
+        base_name = os.path.basename(file_path).replace('.py', '')
+        output_filename = f"{base_name}_{template_name}.{extension}"
     
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
-        base_filename = os.path.basename(file_path).replace('.py', f'.{extension}')
-        output_path = os.path.join(output_dir, base_filename)
+        output_path = os.path.join(output_dir, output_filename)
         
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(content)

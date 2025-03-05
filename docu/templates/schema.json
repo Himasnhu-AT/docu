@@ -1,0 +1,30 @@
+{
+    "type": "object",
+    "required": ["name", "template", "description"],
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "Name of the template"
+        },
+        "template": {
+            "type": "string",
+            "description": "Path to the HTML template file",
+            "pattern": "^[a-zA-Z0-9_-]+\\.html$"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description of the template"
+        },
+        "docstyle": {
+            "type": "string",
+            "enum": ["google", "numpy", "sphinx"],
+            "default": "google",
+            "description": "Documentation style to parse"
+        },
+        "styles": {
+            "type": "string",
+            "description": "Custom CSS styles for the template"
+        }
+    },
+    "additionalProperties": false
+}
