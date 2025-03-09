@@ -10,6 +10,8 @@ Documentation generator for Python code that extracts documentation from special
 - Supports multiple documentation styles (Google, NumPy, Sphinx)
 - Customizable HTML templates with schema validation
 - Clean and attractive output with proper formatting
+- Watch mode for automatically regenerating documentation on file changes
+- Live preview server with auto-reload for HTML documentation
 
 ## Installation
 
@@ -74,7 +76,12 @@ Options:
 --output-dir, -o PATH         Directory to save the generated documentation
 --verbose, -v                 Enable verbose output
 --template, -t NAME           HTML template name to use (default: default)
---doc-style, -s STYLE        Documentation style to parse (google|numpy|sphinx)
+--doc-style, -s STYLE         Documentation style to parse (google|numpy|sphinx)
+--watch, -w                   Watch file for changes and regenerate documentation
+--serve                       Start a live preview server for HTML documentation
+--port                        Port for the live preview server (default: 8000) 
+--host                        Host for the live preview server (default: localhost)
+--files                       Additional files to watch and generate documentation for
 ```
 
 Examples:
@@ -91,6 +98,18 @@ docu my_code.py --doc-style numpy --template custom
 
 # Process a file with verbose output
 docu my_code.py --verbose
+
+# Watch mode: automatically regenerate docs when file changes
+docu my_code.py --output-dir docs --watch
+
+# Watch multiple files
+docu main.py --output-dir docs --watch --files utils.py models.py
+
+# Live preview: serve HTML docs with auto-refresh on changes
+docu my_code.py --output-dir docs --serve
+
+# Live preview with custom port and host
+docu my_code.py --output-dir docs --serve --port 9000 --host 0.0.0.0
 ```
 
 ## Comment Format

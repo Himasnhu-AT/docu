@@ -3,6 +3,8 @@ click>=8.0.0
 rich>=10.0.0
 markdown>=3.3.0
 jinja2>=3.0.0
+watchdog>=2.1.0  # For file watching
+livereload>=2.6.0  # For live preview server
 
 # Development dependencies
 pytest>=7.0.0
