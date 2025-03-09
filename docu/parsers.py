@@ -2,7 +2,7 @@
 
 import os
 import ast
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Set
 
 from .ast_utils import get_type_str
 from .models import ArgumentInfo, DocItem
@@ -51,26 +51,55 @@ def parse_python_file(file_path: str) -> Dict[str, DocItem]:
     # Dictionary to store documentation items
     doc_items: Dict[str, DocItem] = {}
     
-    # Extract module-level documentation
+    # Dictionary to map AST nodes to their line ranges
+    node_line_ranges = {}
+    
+    # First pass: identify all AST nodes and their line ranges
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and hasattr(node, 'lineno'):
+            # Get the end line number if available (Python 3.8+), otherwise compute it
+            end_lineno = getattr(node, 'end_lineno', None)
+            if end_lineno is None:
+                # Estimate end line by finding the last line of the node's body
+                end_lineno = node.lineno
+                for child in ast.walk(node):
+                    if hasattr(child, 'lineno'):
+                        end_lineno = max(end_lineno, getattr(child, 'lineno', 0))
+            
+            node_line_ranges[node] = (node.lineno, end_lineno)
+    
+    # Identify the top-level nodes sorted by their position in the file
+    top_level_nodes = [
+        node for node in ast.iter_child_nodes(tree)
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+    top_level_nodes.sort(key=lambda x: x.lineno)
+    
+    # Identify module-level comments (those before any top-level node)
+    module_doc_lines = []
+    used_doc_lines = set()
+    
+    # If there are top-level nodes, consider comments before the first one as module-level
+    if top_level_nodes:
+        first_node_line = top_level_nodes[0].lineno
+        for line_no, comment in doc_comments:
+            if line_no < first_node_line:
+                # No blank line between module comments and first node - check for proximity
+                if first_node_line - line_no > 3:  # Allow a reasonable gap
+                    module_doc_lines.append(comment)
+                    used_doc_lines.add(line_no)
+    else:
+        # No top-level nodes, all comments are module-level
+        for line_no, comment in doc_comments:
+            module_doc_lines.append(comment)
+            used_doc_lines.add(line_no)
+    
+    # Create module documentation item if module docs exist
     module_name = os.path.basename(file_path).replace('.py', '')
-    module_doc: List[str] = []
-    
-    # Find module-level documentation (comments at the top of the file)
-    for line_no, comment in doc_comments:
-        if any(
-            isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.Assign))
-            for node in ast.walk(tree)
-            if hasattr(node, 'lineno') and node.lineno > line_no
-        ):
-            module_doc.append(comment)
-        else:
-            break
-    
-    # Only include module if it has documentation
-    if module_doc:
+    if module_doc_lines:
         doc_items[module_name] = DocItem(
             name=module_name,
-            doc='\n'.join(module_doc),
+            doc='\n'.join(module_doc_lines),
             item_type='module',
             lineno=1,
         )
@@ -81,14 +110,24 @@ def parse_python_file(file_path: str) -> Dict[str, DocItem]:
     # Extract class and function documentation
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
-            # Check if there are #/ comments before this node
+            # Find the closest preceding comments that haven't been used yet
             item_docs: List[str] = []
-            for line_no in range(node.lineno - 1, 0, -1):
-                if line_no in doc_lines:
+            
+            # Start from the line above the node and go backwards
+            for line_no in range(node.lineno - 1, max(0, node.lineno - 20), -1):
+                if line_no in doc_lines and line_no not in used_doc_lines:
+                    # Check if this line is a blank line or marks a break in comments
+                    if line_no + 1 not in doc_lines and line_no != node.lineno - 1:
+                        break
+                    
                     item_docs.insert(0, doc_lines[line_no])
-                else:
-                    # Stop if we hit a non-documented line
-                    break
+                    used_doc_lines.add(line_no)
+                elif line_no not in doc_lines:
+                    # Stop if we hit a non-documented line (except for blank lines)
+                    with open(file_path, 'r') as f:
+                        lines = f.readlines()
+                    if line_no < len(lines) and lines[line_no].strip():
+                        break
             
             parent = None
             for parent_node in ast.walk(tree):
